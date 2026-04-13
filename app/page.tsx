@@ -8,7 +8,6 @@ export default function SplashPage() {
   const [recentLooks, setRecentLooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Mengambil 3 data terbaru dari Supabase
   useEffect(() => {
     async function getLooks() {
       setLoading(true);
@@ -29,10 +28,11 @@ export default function SplashPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#f4f4f4] flex justify-center font-sans text-black relative">
+    // Menggunakan min-h-[100dvh] agar pas dengan layar HP dinamis
+    <div className="min-h-[100dvh] bg-white md:bg-[#f4f4f4] flex justify-center font-sans text-black relative">
       
       {/* Container Utama */}
-      <div className="w-full max-w-[450px] bg-white min-h-screen flex flex-col items-center shadow-2xl relative overflow-hidden">
+      <div className="w-full max-w-[450px] bg-white min-h-[100dvh] flex flex-col items-center md:shadow-2xl relative overflow-hidden">
         
         {/* 1. LOGO HEADER - Melayang di Atas Foto */}
         <motion.div 
@@ -46,8 +46,8 @@ export default function SplashPage() {
           </h1>
         </motion.div>
 
-        {/* 2. HERO IMAGE SECTION */}
-        <div className="w-full h-[65vh] relative flex justify-center items-end bg-gray-50 overflow-hidden">
+        {/* 2. HERO IMAGE SECTION - Menggunakan dvh agar akurat */}
+        <div className="w-full h-[65dvh] relative flex justify-center items-end bg-gray-50 overflow-hidden">
           <motion.img
             initial={{ scale: 1.15 }} 
             animate={{ scale: 1 }} 
@@ -56,8 +56,6 @@ export default function SplashPage() {
             alt="Hero Streetwear"
             className="absolute inset-0 w-full h-full object-cover object-top"
           />
-          
-          {/* Gradasi Halus di Bagian Bawah Foto */}
           <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-white via-white/40 to-transparent z-10"></div>
         </div>
 
@@ -96,8 +94,7 @@ export default function SplashPage() {
                   >
                     <img 
                       src={look.image_url} 
-                      alt={look.theme_title} 
-                      className="absolute inset-0 w-full h-full object-cover object-top opacity-85 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500" 
+                      className="absolute inset-0 w-full h-full object-cover object-top opacity-85 group-hover:opacity-100 transition-all duration-500" 
                     />
                     <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/95 via-black/70 p-2 pt-4 text-center">
                       <h3 className="text-white text-[10px] font-black uppercase truncate tracking-tight mb-0.5">
@@ -114,9 +111,9 @@ export default function SplashPage() {
           </AnimatePresence>
         </div>
 
-        {/* 5. TOMBOL EXPLORE - Dinaikkan dengan mb-20 */}
+        {/* 5. TOMBOL EXPLORE - Versi "Kurus" dinaikkan (mb-20) */}
         <motion.div 
-          className="mt-auto mb-20 w-full px-14" 
+          className="mt-auto mb-20 w-full px-14"
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.96 }}
         >

@@ -1,7 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import localFont from "next/font/local";
-import PageTransition from "@/components/PageTransition";
 
 // Mendaftarkan Bukhari Script
 const bukhari = localFont({
@@ -14,6 +13,16 @@ export const metadata: Metadata = {
   description: "Modern Streetwear Lookbook & Catalogue",
 };
 
+// PENGATURAN FULLSCREEN MOBILE
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover", // Ini yang memaksa konten masuk ke area notch/hitam
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -21,10 +30,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${bukhari.variable} antialiased bg-[#f0f0f0]`}>
-        <PageTransition>
-          {children}
-        </PageTransition>
+      <body className={`${bukhari.variable} antialiased bg-white`}>
+        {children}
       </body>
     </html>
   );
