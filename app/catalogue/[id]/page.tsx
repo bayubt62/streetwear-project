@@ -1,111 +1,55 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { useParams } from 'next/navigation';
 import { ChevronLeft, ShoppingBag, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function DetailLookbook() {
+export default function OutfitDetailsPage() {
   const { id } = useParams();
-  const router = useRouter();
   const [look, setLook] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
-    async function fetchAndIncrement() {
-      if (!id) return;
-
-      try {
-        // 1. COBA TAMBAH VIEW (Jika RPC gagal, web tidak akan macet)
-        await supabase.rpc('increment_views', { row_id: id });
-      } catch (e) {
-        console.error("RPC Error:", e);
-      }
-
-      // 2. AMBIL DATA
-      const { data } = await supabase
-        .from('lookbooks')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (data) setLook(data);
-      setLoading(false);
+    async function getData() {
+      const { data: l } = await supabase.from('lookbooks').select('*').eq('id', id).single();
+      const { data: i } = await supabase.from('lookbook_items').select('*').eq('lookbook_id', id);
+      setLook(l);
+      setItems(i || []);
     }
-
-    fetchAndIncrement();
+    getData();
   }, [id]);
 
-  if (loading) return (
-    <div className="min-h-[100dvh] bg-white flex flex-col items-center justify-center font-black italic text-gray-200">
-      <div className="w-10 h-10 border-4 border-black border-t-transparent rounded-full animate-spin mb-4"></div>
-      LOADING...
-    </div>
-  );
-  
-  if (!look) return <div className="min-h-[100dvh] bg-white flex items-center justify-center">Look not found.</div>;
+  if (!look) return null;
 
   return (
-    <div className="min-h-[100dvh] bg-white text-black font-sans relative">
-      
-      {/* 1. HEADER NAV - Back Button melayang */}
-      <div className="absolute top-8 left-6 z-50">
-        <button 
-          onClick={() => router.back()}
-          className="bg-black text-white p-3 rounded-full shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] active:scale-90 transition-transform"
-        >
-          <ChevronLeft size={22} strokeWidth={3} />
-        </button>
-      </div>
+    <div className="min-h-screen bg-[#f0f0f0] flex justify-center font-sans text-black">
+      <div className="w-full max-w-[450px] bg-white min-h-screen flex flex-col shadow-xl overflow-x-hidden">
+        
+        <header className="absolute top-0 z-50 w-full px-6 py-8 flex justify-between items-center pointer-events-none">
+          <Link href="/catalogue" className="bg-black text-white rounded-full px-4 py-1.5 pointer-events-auto shadow-lg"><ChevronLeft size={20} strokeWidth={4} /></Link>
+          <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 border-2 border-black pointer-events-auto"><Eye size={14} /><span className="text-[10px] font-black">{look.views || 0}</span></div>
+        </header>
 
-      {/* 2. HERO IMAGE - Perbaikan scaling agar tidak terlalu zoom */}
-      <div className="w-full h-[65dvh] relative overflow-hidden bg-gray-50">
-        <img 
-          src={look.image_url} 
-          className="w-full h-full object-cover object-center" // Diubah ke center agar lebih seimbang
-          alt={look.theme_title}
-        />
-        {/* Gradasi halus agar teks di bawah terbaca */}
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-transparent"></div>
-      </div>
-
-      {/* 3. CONTENT BOX - Modern Brutalist Style */}
-      <div className="px-6 -mt-16 relative z-10 pb-12">
-        <motion.div 
-          initial={{ y: 30, opacity: 0 }} 
-          animate={{ y: 0, opacity: 1 }}
-          className="bg-white border-[3px] border-black p-6 rounded-[2.5rem] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
-        >
-          {/* Badge Info */}
-          <div className="flex justify-between items-center mb-5">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Streetwear Insp.</span>
-            <div className="flex items-center gap-1.5 bg-[#FF3B3B] text-white text-[9px] px-3 py-1.5 rounded-full font-black">
-              <Eye size={12} strokeWidth={3} />
-              {look.views || 0} VIEWS
-            </div>
+        <motion.img initial={{ opacity: 0 }} animate={{ opacity: 1 }} src={look.image_url} className="w-full aspect-[3/4] object-cover border-b-[4px] border-black" />
+        
+        <div className="p-6 pb-24">
+          <motion.h2 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-4xl font-[1000] uppercase tracking-tighter leading-none mb-8">{look.theme_title}</motion.h2>
+          <div className="flex flex-col gap-4">
+            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">Shop the look</h3>
+            {items.map((item, idx) => (
+              <motion.a 
+                initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.1 * idx }}
+                key={item.id} href={item.affiliate_url.startsWith('http') ? item.affiliate_url : `https://${item.affiliate_url}`} target="_blank" 
+                className="flex items-center justify-between p-5 border-[3px] border-black rounded-2xl hover:bg-black hover:text-white transition-all shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] active:shadow-none"
+              >
+                <div className="flex flex-col"><span className="text-lg font-[1000] uppercase leading-none mb-1">{item.product_name}</span><span className="text-[10px] font-bold opacity-40 uppercase">Buy Now</span></div>
+                <ShoppingBag size={22} strokeWidth={3} />
+              </motion.a>
+            ))}
           </div>
-
-          {/* Title & Desc */}
-          <h1 className="text-[26px] font-[1000] uppercase leading-[1.1] mb-4 tracking-tight">
-            {look.theme_title}
-          </h1>
-          <p className="text-sm text-gray-500 leading-relaxed mb-8 font-medium">
-            {look.description || "Confidence is the best outfit. Get the detail of this look by clicking the button below."}
-          </p>
-
-          {/* Tombol CTA - Mengatasi about:blank */}
-          <motion.div whileTap={{ scale: 0.96 }}>
-            <a 
-              href={look.affiliate_link && look.affiliate_link !== "" ? look.affiliate_link : "#"}
-              target={look.affiliate_link ? "_blank" : "_self"}
-              className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] transition-all border-2 border-black
-                ${look.affiliate_link ? 'bg-black text-white shadow-lg' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-            >
-              <ShoppingBag size={18} strokeWidth={2.5} />
-              {look.affiliate_link ? 'Get This Outfit' : 'Link Not Available'}
-            </a>
-          </motion.div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
