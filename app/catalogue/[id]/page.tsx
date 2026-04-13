@@ -1,55 +1,93 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { useParams } from 'next/navigation';
-import { ChevronLeft, ShoppingBag, Eye } from 'lucide-react';
+import { ChevronLeft, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function OutfitDetailsPage() {
+export default function DetailLookbook() {
   const { id } = useParams();
+  const router = useRouter();
   const [look, setLook] = useState<any>(null);
-  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function getData() {
-      const { data: l } = await supabase.from('lookbooks').select('*').eq('id', id).single();
-      const { data: i } = await supabase.from('lookbook_items').select('*').eq('lookbook_id', id);
-      setLook(l);
-      setItems(i || []);
+    async function fetchAndIncrement() {
+      if (!id) return;
+
+      // 1. TAMBAH VIEW DI DATABASE (Memanggil fungsi SQL tadi)
+      await supabase.rpc('increment_views', { row_id: id });
+
+      // 2. AMBIL DATA TERBARU
+      const { data, error } = await supabase
+        .from('lookbooks')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (data) setLook(data);
+      setLoading(false);
     }
-    getData();
+
+    fetchAndIncrement();
   }, [id]);
 
-  if (!look) return null;
+  if (loading) return <div className="min-h-screen bg-white flex items-center justify-center font-bold">LOADING...</div>;
+  if (!look) return <div className="min-h-screen bg-white flex items-center justify-center">Look not found.</div>;
 
   return (
-    <div className="min-h-screen bg-[#f0f0f0] flex justify-center font-sans text-black">
-      <div className="w-full max-w-[450px] bg-white min-h-screen flex flex-col shadow-xl overflow-x-hidden">
-        
-        <header className="absolute top-0 z-50 w-full px-6 py-8 flex justify-between items-center pointer-events-none">
-          <Link href="/catalogue" className="bg-black text-white rounded-full px-4 py-1.5 pointer-events-auto shadow-lg"><ChevronLeft size={20} strokeWidth={4} /></Link>
-          <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 border-2 border-black pointer-events-auto"><Eye size={14} /><span className="text-[10px] font-black">{look.views || 0}</span></div>
-        </header>
+    <div className="min-h-screen bg-white text-black font-sans pb-20">
+      {/* Header Mobile */}
+      <div className="fixed top-0 w-full z-50 p-6 flex justify-between items-center pointer-events-none">
+        <button 
+          onClick={() => router.back()}
+          className="bg-black text-white p-3 rounded-full shadow-xl pointer-events-auto active:scale-90 transition-transform"
+        >
+          <ChevronLeft size={24} />
+        </button>
+      </div>
 
-        <motion.img initial={{ opacity: 0 }} animate={{ opacity: 1 }} src={look.image_url} className="w-full aspect-[3/4] object-cover border-b-[4px] border-black" />
-        
-        <div className="p-6 pb-24">
-          <motion.h2 initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-4xl font-[1000] uppercase tracking-tighter leading-none mb-8">{look.theme_title}</motion.h2>
-          <div className="flex flex-col gap-4">
-            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">Shop the look</h3>
-            {items.map((item, idx) => (
-              <motion.a 
-                initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.1 * idx }}
-                key={item.id} href={item.affiliate_url.startsWith('http') ? item.affiliate_url : `https://${item.affiliate_url}`} target="_blank" 
-                className="flex items-center justify-between p-5 border-[3px] border-black rounded-2xl hover:bg-black hover:text-white transition-all shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] active:shadow-none"
-              >
-                <div className="flex flex-col"><span className="text-lg font-[1000] uppercase leading-none mb-1">{item.product_name}</span><span className="text-[10px] font-bold opacity-40 uppercase">Buy Now</span></div>
-                <ShoppingBag size={22} strokeWidth={3} />
-              </motion.a>
-            ))}
+      {/* Main Image */}
+      <div className="w-full h-[70vh] relative overflow-hidden bg-gray-100">
+        <img 
+          src={look.image_url} 
+          className="w-full h-full object-cover object-top"
+          alt={look.theme_title}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
+      </div>
+
+      {/* Content */}
+      <div className="px-8 -mt-12 relative z-10">
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }} 
+          animate={{ y: 0, opacity: 1 }}
+          className="bg-white border-[3px] border-black p-6 rounded-3xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+        >
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-1">STREETWEAR INSP.</p>
+              <h1 className="text-2xl font-[1000] uppercase leading-none">{look.theme_title}</h1>
+            </div>
+            <div className="bg-red-500 text-white text-[10px] px-3 py-1 rounded-full font-black animate-pulse">
+              {look.views || 0} VIEWS
+            </div>
           </div>
-        </div>
+
+          <p className="text-sm text-gray-600 leading-relaxed mb-6">
+            {look.description || "No description available for this look."}
+          </p>
+
+          {/* Tombol Shopee/Affiliate */}
+          <a 
+            href={look.affiliate_link || "#"}
+            target="_blank"
+            className="flex items-center justify-center gap-3 w-full bg-black text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-900 transition-all active:scale-95"
+          >
+            <ShoppingBag size={18} />
+            Get This Outfit
+          </a>
+        </motion.div>
       </div>
     </div>
   );
