@@ -1,34 +1,50 @@
+// middleware.ts (Full Script)
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const url = request.nextUrl;
-  const hostname = request.headers.get('host');
+  const { pathname } = url;
+  const hostname = request.headers.get('host') || '';
 
-  // 1. Cek apakah alamat diawali dengan 'studio.' (untuk domain kustom nanti)
-  const isStudioDomain = hostname?.startsWith('studio.');
-  
-  // 2. Cek apakah Anda sedang menggunakan domain gratis dari Vercel
-  const isVercelDomain = hostname?.includes('vercel.app');
+  // 1. Definisikan Domain Vercel & Studio
+  const isVercelDomain = hostname.includes('vercel.app');
+  const isStudioDomain = hostname.startsWith('studio.');
 
-  // Jika akses lewat domain studio, arahkan ke folder /studio
-  if (isStudioDomain && !url.pathname.startsWith('/studio')) {
-    return NextResponse.rewrite(new URL(`/studio${url.pathname}`, request.url));
+  // 2. Ambil Cookie Auth (Lebih aman dari localStorage untuk Server-side)
+  const isAuthenticated = request.cookies.get('studio_session')?.value === 'true';
+
+  // 3. PROTEKSI FOLDER /STUDIO
+  if (pathname.startsWith('/studio')) {
+    // Abaikan jika menuju halaman login
+    if (pathname === '/studio/login') {
+      return NextResponse.next();
+    }
+
+    // Jika tidak ada session auth, lempar paksa ke login
+    if (!isAuthenticated) {
+      const loginUrl = new URL('/studio/login', request.url);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
-  // IZINKAN: Jika sedang di domain Vercel, jangan blokir akses ke /studio
-  if (isVercelDomain && url.pathname.startsWith('/studio')) {
-    return NextResponse.next();
-  }
-
-  // BLOKIR: Selain domain Vercel & domain Studio, lempar ke 404 jika coba buka /studio
-  if (!isStudioDomain && !isVercelDomain && url.pathname.startsWith('/studio')) {
-    return NextResponse.rewrite(new URL('/404', request.url));
+  // 4. LOGIKA SUBDOMAIN (Opsional jika pakai domain kustom)
+  if (isStudioDomain && !pathname.startsWith('/studio')) {
+    return NextResponse.rewrite(new URL(`/studio${pathname}`, request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 };
