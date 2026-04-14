@@ -11,7 +11,7 @@ export default function StudioLogin() {
   const router = useRouter();
 
   // PIN RAHASIA (Ganti dengan PIN Anda)
-  const MASTER_PIN = '123456'; 
+  const MASTER_PIN = '033013'
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
